@@ -1,78 +1,77 @@
-<?PHP
-session_start();  
-include ("clases/mysql.inc.php");	
-$db = new mod_db();
+<?php
+session_start();
 
+require_once __DIR__ . '/clases/Csrf.php';
+require_once __DIR__ . '/clases/SanitizarEntrada.php';
+require_once __DIR__ . '/clases/mysql.inc.php';
+require_once __DIR__ . '/clases/TwoFactorAuth.php';
+require_once __DIR__ . '/clases/objLoginAdmin.php';
 
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    header('Location: login.php');
+    exit;
+}
 
-include("clases/SanitizarEntrada.php");
-include("comunes/loginfunciones.php");
-include("clases/objLoginAdmin.php");
+$usuario = $_POST['usuario'] ?? '';
+$contrasena = $_POST['contrasena'] ?? '';
 
-	
-$tolog=false;
- 
- // $topanel=false;
- if (isset($_POST["tolog"]))
- 	
- 	$tolog = $_POST["tolog"];
- 
- 
- 
- 
-  //$tolog es el nombre de un hidden del form de login, si no llegara a funcionar en hosting, se debe obtener de $_POST
-    if(isset($tolog)&&($tolog=="true")&& ($_SERVER['REQUEST_METHOD'] === 'POST') ){
-		
-		//echo "<pre>";
-		//var_dump($_SERVER);
-		//echo"</pre>";
-             
-			$Usuario = $_POST['usuario'];
-			$ClaveKey = $_POST['contrasena'];
-			//echo "3l usuario es: ".$Usuario."<br>";
-			//echo "3l ClaveKey es: ".$ClaveKey."<br>";
+if (!Csrf::validate($_POST['csrf_token'] ?? null)) {
+    $_SESSION['flash'] = [
+        'tipo' => 'error',
+        'mensaje' => 'La sesion expiro. Intenta nuevamente.',
+    ];
+    $_SESSION['old_login'] = ['usuario' => SanitizarEntrada::usuario($usuario)];
+    header('Location: login.php');
+    exit;
+}
 
-			echo "La dirección IP es ".$_SERVER['REMOTE_ADDR'];
-			$ipRemoto = $_SERVER['REMOTE_ADDR'];
+try {
+    $db = new mod_db();
+    $ipRemota = $_SERVER['REMOTE_ADDR'] ?? '';
+    $login = new ValidacionLogin($usuario, $contrasena, $ipRemota, $db);
 
-			$Logearme = new ValidacionLogin($Usuario, $ClaveKey,$ipRemoto, $db);
-			
-		
-			if ($Logearme->logger()){
-					$Logearme->autenticar();
-				if ($Logearme->getIntentoLogin()){
-					//echo "Se ha loggeado el usuario satisfactoriamente <br>";
-					//Comenzar a Crear las SESIONES
-					$_SESSION['autenticado']= "SI";
-					$_SESSION['Usuario']= $Logearme->getUsuario();
-					//Redireccionar a la página principal.....
-					
-					
-					$Logearme->registrarIntentos();
-					 $tolog=false;
-					 redireccionar("formularios/PanelControl.php");
-					// Si es exitoso puedo guardar en la base de datos el intento 
-					//  y desde que ip
-					// Sino lo es también debo guardar el IP
-				}else {
-					
-					$Logearme->registrarIntentos();
-					$_SESSION["emsg"] =1;
-					//echo "ocurrió un error ";
-					 redireccionar("login.php");		
-				}
-			}else {
-				//echo "hola como estas logger <br>";
-				$_SESSION["emsg"] =1;
-				redireccionar("login.php");
-			}
+    $usuarioExiste = $login->logger();
+    $autenticado = $usuarioExiste && $login->autenticar();
+    $login->registrarIntentos();
 
-			
-	    
-    } else {
-		//echo "hola como estas<br>";
-		redireccionar("login.php");
-	}
-	
- 
-?>
+    if (!$autenticado) {
+        $_SESSION['flash'] = [
+            'tipo' => 'error',
+            'mensaje' => 'Usuario o contrasena incorrectos.',
+        ];
+        $_SESSION['old_login'] = ['usuario' => $login->getUsuario()];
+        header('Location: login.php');
+        exit;
+    }
+
+    $usuarioData = $login->getUsuarioEncontrado();
+    $secret = trim((string) ($usuarioData->secret_2fa ?? ''));
+    $requiereSetup = $secret === '';
+
+    if ($requiereSetup) {
+        $secret = TwoFactorAuth::generarSecret();
+        $db->actualizarSecret2fa((int) $usuarioData->id, $secret);
+    }
+
+    session_regenerate_id(true);
+    $_SESSION['usuario_pendiente_2fa'] = [
+        'id' => (int) $usuarioData->id,
+        'Usuario' => $usuarioData->Usuario,
+        'Correo' => $usuarioData->Correo,
+        'secret_2fa' => $secret,
+    ];
+    unset($_SESSION['autenticado'], $_SESSION['Usuario'], $_SESSION['2fa_verificado']);
+
+    $db->registrarTrazabilidad('usuarios', 'PASSWORD_OK', (int) $usuarioData->id, $usuarioData->Usuario);
+
+    header('Location: ' . ($requiereSetup ? 'setup_2fa.php' : 'validar_2fa.php'));
+    exit;
+} catch (Throwable $error) {
+    $_SESSION['flash'] = [
+        'tipo' => 'error',
+        'mensaje' => 'No se pudo procesar el login. Revisa la conexion o intenta mas tarde.',
+    ];
+    $_SESSION['old_login'] = ['usuario' => SanitizarEntrada::usuario($usuario)];
+    header('Location: login.php');
+    exit;
+}

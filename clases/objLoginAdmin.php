@@ -1,128 +1,57 @@
-<?PHP
-final class ValidacionLogin{ 
-    
-	Private $id;
-	Private $usuario;
-	Private $contrasena; 
-	Private $hastGenerado;
-	Private $loginExitoso;
-	Private $ip;
-	Private $pdo;
-	
+<?php
 
-	Public function __construct($usuario,$contrasena, $ipRemoto, $pdo){ 
-	
-		//$this->usuario  = trim($usuario); 
-		//$nombreLimpio = SanitizarEntrada::limpiarCadena($nombre); 
+final class ValidacionLogin
+{
+    private ?object $usuarioEncontrado = null;
+    private string $usuario;
+    private string $contrasena;
+    private string $ip;
+    private mod_db $db;
+    private bool $loginExitoso = false;
 
-		$this->usuario  = SanitizarEntrada::limpiarCadena($usuario); 
-		$this->contrasena  = SanitizarEntrada::limpiarCadena($contrasena); 
-		$this->ip  = $ipRemoto;
+    public function __construct(string $usuario, string $contrasena, string $ipRemoto, mod_db $db)
+    {
+        $this->usuario = SanitizarEntrada::usuario($usuario);
+        $this->contrasena = $contrasena;
+        $this->ip = $ipRemoto;
+        $this->db = $db;
+    }
 
-		$this->pdo = $pdo;
+    public function logger(): bool
+    {
+        $this->usuarioEncontrado = $this->db->buscarUsuario($this->usuario);
+        return $this->usuarioEncontrado !== null;
+    }
 
-		
-	} //introduceDatos
+    public function autenticar(): bool
+    {
+        if (!$this->usuarioEncontrado) {
+            $this->loginExitoso = false;
+            return false;
+        }
 
- 	// Simulación de autenticación (puedes reemplazar con base de datos)
+        $this->loginExitoso = password_verify($this->contrasena, $this->usuarioEncontrado->HashMagic);
+        return $this->loginExitoso;
+    }
 
-	 Private function generarHash(){
+    public function registrarIntentos(): void
+    {
+        $estado = $this->loginExitoso ? 'exitoso' : 'fallido';
+        $this->db->registrarIntento($this->usuario, $estado, $this->ip);
+    }
 
-			$options = [
-				// Increase the bcrypt cost from 12 to 13.
-				'cost' => 13,
-			];
-		
-			
-			//$hashedPassword = password_hash($password, PASSWORD_DEFAULT);
-			$this->hastGenerado =  password_hash($this->contrasena, PASSWORD_BCRYPT, $options);
-			
-	}// no quisiera que se generará el password en otra parte
+    public function getIntentoLogin(): bool
+    {
+        return $this->loginExitoso;
+    }
 
-	public function logger(){
+    public function getUsuario(): string
+    {
+        return $this->usuario;
+    }
 
-		$usuariologueado = $this->pdo->log($this->usuario);
-
-		if ($usuariologueado) {
-				$this->id =  $usuariologueado->id;
-				$this->hastGenerado =  $usuariologueado->HashMagic;
-				return true;
-
-		} else {
-			   //throw new Exception("Usuario no encontrado");
-			   return false;
-		}
-	} 
-	
- 	public function autenticar(){
-		
-			if (password_verify($this->contrasena, $this->hastGenerado)) {
-				echo 'Password is valid!';
-				$this->loginExitoso  = 1;
-					
-			} else {
-				echo 'Invalid password.';
-				$this->loginExitoso  = 0;
-			}
-
-	}//función Autentica
-
-
-	public function getIntentoLogin(){
-		return $this->loginExitoso;
-	}
-	
-
-	public function getUsuario(){
-		return $this->usuario;
-
-	}
-	
-	public function getContrasena(){
-		return $this->contrasena;
-		
-	}
-
-	public function getHashGenerado(){
-		return $this->hastGenerado;
-		
-	}
-	
-
-	public function registrarIntentos(){ 
-    
-	
-	
-	
-			$cols= "Usuario,
-					ipRemoto,
-					deteccion_anomalia";
-						
-			
-			$val = "'$this->usuario',   
-					'$this->ip',
-					'$this->loginExitoso'";
-		
-			//$db->insert("intentos_login",$cols,$val);
-
-
-			$data = array(
-			"Usuario" => "$this->usuario",
-			"ipRemoto" => "$this->ip",
-			"deteccion_anomalia" => $this->loginExitoso
-			);
-			$this->pdo->insertSeguro("intentos_login",$data);
-	} 
-
-
-	// // Cerrar la conexión
-		// $stmt = null;
-		// $pdo = null;
-
-} //fin ValidacionLogin
-
-/* foreach($result as $key => $value) {
-	$resp[$key]=$value;
-	}//fin del foreach
-	*/
-?>		
+    public function getUsuarioEncontrado(): ?object
+    {
+        return $this->usuarioEncontrado;
+    }
+}

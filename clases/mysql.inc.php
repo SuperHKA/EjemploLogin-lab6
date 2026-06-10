@@ -2,185 +2,100 @@
 
 class mod_db
 {
-	private $conexion; // Conexión a la base de datos
-	private $perpage = 5; // Cantidad de registros por página
-	private $total;
-	private $pagecut_query;
-	private $debug = false; // Cambiado a false para mantener la configuración original
+    private PDO $conexion;
 
-	public function __construct()
-	{
-		
-		##### Setting SQL Vars #####
-		$sql_host = "localhost";
-		$sql_name = "company_info";
-		$sql_user = "root";	
-		$sql_pass = "demo";
+    public function __construct()
+    {
+        $sql_host = 'localhost';
+        $sql_name = 'company_info';
+        $sql_user = 'login_user';
+        $sql_pass = 'Login12345*';
 
-		$dsn = "mysql:host=$sql_host;dbname=$sql_name;charset=utf8";
-		try {
-			$this->conexion = new PDO($dsn, $sql_user, $sql_pass);
-			$this->conexion->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-			if ($this->debug) {
-				echo "Conexión exitosa a la base de datos<br>";
-			}
-		} catch (PDOException $e) {
-			echo "Error de conexión: " . $e->getMessage();
-			exit;
-		}
-	}
-
-	public function getConexion (){
-
-		return $this->conexion;
-	}
-
-	public function disconnect()
-	{
-		$this->conexion = null; // Cierra la conexión a la base de datos
-	}
-
-	public function insert($tb_name, $cols, $val)
-{
-    $cols = $cols ? "($cols)" : "";
-    $sql = "INSERT INTO $tb_name $cols VALUES ($val)";
-    
-    try {
-        $this->conexion->exec($sql);
-    } catch (PDOException $e) {
-        echo "Error al insertar: " . $e->getMessage();
+        $dsn = "mysql:host=$sql_host;dbname=$sql_name;charset=utf8mb4";
+        $this->conexion = new PDO($dsn, $sql_user, $sql_pass, [
+            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_OBJ,
+        ]);
     }
-}
 
-public function insertSeguro($tb_name, $data)
-{
-    $columns = implode(", ", array_keys($data));
-    $placeholders = ":" . implode(", :", array_keys($data));
+    public function getConexion(): PDO
+    {
+        return $this->conexion;
+    }
 
-    $sql = "INSERT INTO $tb_name ($columns) VALUES ($placeholders)";
+    public function buscarUsuario(string $usuario): ?object
+    {
+        $stmt = $this->conexion->prepare('SELECT * FROM usuarios WHERE Usuario = :usuario LIMIT 1');
+        $stmt->execute(['usuario' => $usuario]);
+        $usuarioEncontrado = $stmt->fetch();
 
-    try {
+        return $usuarioEncontrado ?: null;
+    }
+
+    public function buscarCorreo(string $correo): ?object
+    {
+        $stmt = $this->conexion->prepare('SELECT * FROM usuarios WHERE Correo = :correo LIMIT 1');
+        $stmt->execute(['correo' => $correo]);
+        $correoEncontrado = $stmt->fetch();
+
+        return $correoEncontrado ?: null;
+    }
+
+    public function insertarUsuario(array $data): int
+    {
+        $sql = 'INSERT INTO usuarios
+            (Nombre, Apellido, Usuario, Correo, HashMagic, Sexo, secret_2fa)
+            VALUES
+            (:nombre, :apellido, :usuario, :correo, :hash, :sexo, :secret_2fa)';
+
         $stmt = $this->conexion->prepare($sql);
+        $stmt->execute([
+            'nombre' => $data['nombre'],
+            'apellido' => $data['apellido'],
+            'usuario' => $data['usuario'],
+            'correo' => $data['correo'],
+            'hash' => $data['hash'],
+            'sexo' => $data['sexo'],
+            'secret_2fa' => $data['secret_2fa'],
+        ]);
 
-        // Asignar valores con bind
-        foreach ($data as $key => $value) {
-            $stmt->bindValue(":$key", $value);
-        }
-
-        $stmt->execute();
-        return true;
-    } catch (PDOException $e) {
-        echo "Error en INSERT: " . $e->getMessage();
-        return false;
+        return (int) $this->conexion->lastInsertId();
     }
-}
 
-	public function update($tb_name, $string, $astriction)
-	{
-		$sql = "UPDATE $tb_name SET $string";
-		$this->executeQuery($sql, $astriction);
-	}
+    public function actualizarSecret2fa(int $id, string $secret): bool
+    {
+        $stmt = $this->conexion->prepare('UPDATE usuarios SET secret_2fa = :secret WHERE id = :id');
+        return $stmt->execute([
+            'secret' => $secret,
+            'id' => $id,
+        ]);
+    }
 
-	public function del($tb_name, $astriction)
-	{
-		$sql = "DELETE FROM $tb_name";
-		if ($astriction) {
-			$sql .= " WHERE $astriction"; // Agrega la restricción si existe
-		}
-		$this->executeQuery($sql);
-	}
+    public function registrarIntento(string $usuario, string $estado, ?string $ipRemota): bool
+    {
+        $stmt = $this->conexion->prepare(
+            'INSERT INTO intentos_login (Usuario, estado, ipRemota) VALUES (:usuario, :estado, :ipRemota)'
+        );
 
-	public function query($string)
-	{
-		return $this->executeQuery($string);
-	}
+        return $stmt->execute([
+            'usuario' => $usuario !== '' ? $usuario : 'desconocido',
+            'estado' => $estado,
+            'ipRemota' => $ipRemota,
+        ]);
+    }
 
+    public function registrarTrazabilidad(string $tabla, string $accion, ?int $codigoRegistro, ?string $usuario): bool
+    {
+        $stmt = $this->conexion->prepare(
+            'INSERT INTO trazabilidad_acciones (Tabla, Acciones, CodigoRegistro, Usuario)
+             VALUES (:tabla, :accion, :codigoRegistro, :usuario)'
+        );
 
-	public function log($Usuario){
-
-	 // Preparar la consulta
-
-		 try {
-		 $sql = "SELECT * FROM usuarios WHERE Usuario = :User";
-		 $stmt = $this->conexion->prepare($sql);
-		 $stmt->bindParam(':User', $Usuario, PDO::PARAM_STR);
-
-		 // Ejecutar la consulta
-		 $stmt->execute();
-
-			// Retornar el objeto directamente
-            return $stmt->fetchObject();
-		
-		} catch (PDOException $e) {
-			echo "Error: " . $e->getMessage();
-            return null;
-		}
-
-	} //log(usuario)
-
-
-	public function nums($string = "", $stmt = null)
-	{
-		if ($string) {
-			$stmt = $this->query($string);
-		}
-		$this->total = $stmt ? $stmt->rowCount() : 0; // Cuenta el número de filas
-		return $this->total;
-	}
-
-	public function objects($string = "", $stmt = null)
-	{
-		if ($string) {
-			$stmt = $this->query($string);
-		}
-		return $stmt ? $stmt->fetch(PDO::FETCH_OBJ) : null; // Retorna un objeto
-	}
-
-	public function insert_id()
-	{
-		return $this->db->lastInsertId(); // Retorna el último ID insertado
-	}
-
-	public function page_cut($string, $nowpage = 0)
-	{
-		$start = $nowpage ? ($nowpage - 1) * $this->perpage : 0; // Calcula el inicio de la página
-		$this->pagecut_query = "$string LIMIT $start, $this->perpage";
-		return $this->pagecut_query;
-	}
-
-	public function show_page_cut($string = "", $num = "", $url = "")
-	{
-		$nowpage = isset($_REQUEST['nowpage']) ? $_REQUEST['nowpage'] : 1; // Obtiene la página actual
-		$this->total = $string ? $this->nums($string) : $num; // Total de registros
-		$pages = ceil($this->total / $this->perpage); // Calcula el total de páginas
-		$pagecut = "";
-
-		for ($i = 1; $i <= $pages; $i++) {
-			if ($nowpage == $i) {
-				$pagecut .= $i; // Página actual
-			} else {
-				$pagecut .= "<a href='$url&nowpage=$i'><font color='336600' style='font-size:10pt'>$i</font></a>";
-			}
-		}
-
-		return $pagecut; // Retorna el paginador
-	}
-
-	private function executeQuery($sql, $astriction = "")
-	{
-		try {
-			if ($astriction) {
-				$sql .= " WHERE $astriction"; // Agrega la restricción si existe
-			}
-			$stmt = $this->db->prepare($sql); // Prepara la consulta
-			$stmt->execute(); // Ejecuta la consulta
-			if ($this->debug) {
-				echo "Query ejecutada: $sql<br>";
-			}
-			return $stmt; // Retorna el resultado
-		} catch (PDOException $e) {
-			echo "Error en la consulta: " . $e->getMessage();
-			return null;
-		}
-	}
+        return $stmt->execute([
+            'tabla' => $tabla,
+            'accion' => $accion,
+            'codigoRegistro' => $codigoRegistro,
+            'usuario' => $usuario,
+        ]);
+    }
 }
