@@ -22,29 +22,26 @@ final class TwoFactorAuth
 
     public static function qrHtml(string $uri): string
     {
-        $root = dirname(__DIR__, 2);
-        $candidates = [
-            $root . DIRECTORY_SEPARATOR . 'TCPDF-main' . DIRECTORY_SEPARATOR . 'tcpdf_barcodes_2d.php',
-            $root . DIRECTORY_SEPARATOR . 'Parte-Prof' . DIRECTORY_SEPARATOR . 'TCPDF-main' . DIRECTORY_SEPARATOR . 'tcpdf_barcodes_2d.php',
-        ];
+        $tcpdfFile = dirname(__DIR__) . DIRECTORY_SEPARATOR . 'TCPDF-main' . DIRECTORY_SEPARATOR . 'tcpdf_barcodes_2d.php';
 
-        foreach ($candidates as $candidate) {
-            if (is_file($candidate)) {
-                require_once $candidate;
-                $barcode = new TCPDF2DBarcode($uri, 'QRCODE,M');
-                return $barcode->getBarcodeHTML(5, 5, '#151515');
-            }
+        if (is_file($tcpdfFile)) {
+            require_once $tcpdfFile;
+            $barcode = new TCPDF2DBarcode($uri, 'QRCODE,M');
+            return $barcode->getBarcodeHTML(5, 5, '#151515');
         }
 
         return '<p class="alert alert-error">No se encontro TCPDF para generar el QR.</p>';
     }
 
-    public static function verificarCodigo(string $secret, string $codigo, int $window = 1): bool
+    public static function verificarCodigo(string $secret, string $codigo, int $window = 4): bool
     {
+        $codigo = trim($codigo);
+
         if (!preg_match('/^\d{6}$/', $codigo)) {
             return false;
         }
 
+        $secret = trim($secret);
         $authenticator = new GoogleAuthenticator();
         return $authenticator->checkCode($secret, $codigo, $window);
     }

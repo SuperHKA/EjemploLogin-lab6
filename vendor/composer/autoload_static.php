@@ -15,6 +15,22 @@ class ComposerStaticInit0229362f466a16060058d180d11d028d
         array (
             'Google\\Authenticator\\' => 21,
         ),
+        'C' =>
+        array (
+            'Com\\Tecnick\\Unicode\\Data\\' => 25,
+            'Com\\Tecnick\\Unicode\\' => 20,
+            'Com\\Tecnick\\Pdf\\Parser\\' => 23,
+            'Com\\Tecnick\\Pdf\\Page\\' => 21,
+            'Com\\Tecnick\\Pdf\\Image\\' => 22,
+            'Com\\Tecnick\\Pdf\\Graph\\' => 22,
+            'Com\\Tecnick\\Pdf\\Font\\' => 21,
+            'Com\\Tecnick\\Pdf\\Filter\\' => 23,
+            'Com\\Tecnick\\Pdf\\Encrypt\\' => 24,
+            'Com\\Tecnick\\Pdf\\' => 16,
+            'Com\\Tecnick\\File\\' => 17,
+            'Com\\Tecnick\\Color\\' => 18,
+            'Com\\Tecnick\\Barcode\\' => 20,
+        ),
     );
 
     public static $prefixDirsPsr4 = array (
@@ -25,6 +41,58 @@ class ComposerStaticInit0229362f466a16060058d180d11d028d
         'Google\\Authenticator\\' =>
         array (
             0 => __DIR__ . '/..' . '/sonata-project/google-authenticator/src',
+        ),
+        'Com\\Tecnick\\Unicode\\Data\\' =>
+        array (
+            0 => __DIR__ . '/..' . '/tecnickcom/tc-lib-unicode-data/src',
+        ),
+        'Com\\Tecnick\\Unicode\\' =>
+        array (
+            0 => __DIR__ . '/..' . '/tecnickcom/tc-lib-unicode/src',
+        ),
+        'Com\\Tecnick\\Pdf\\Parser\\' =>
+        array (
+            0 => __DIR__ . '/..' . '/tecnickcom/tc-lib-pdf-parser/src',
+        ),
+        'Com\\Tecnick\\Pdf\\Page\\' =>
+        array (
+            0 => __DIR__ . '/..' . '/tecnickcom/tc-lib-pdf-page/src',
+        ),
+        'Com\\Tecnick\\Pdf\\Image\\' =>
+        array (
+            0 => __DIR__ . '/..' . '/tecnickcom/tc-lib-pdf-image/src',
+        ),
+        'Com\\Tecnick\\Pdf\\Graph\\' =>
+        array (
+            0 => __DIR__ . '/..' . '/tecnickcom/tc-lib-pdf-graph/src',
+        ),
+        'Com\\Tecnick\\Pdf\\Font\\' =>
+        array (
+            0 => __DIR__ . '/..' . '/tecnickcom/tc-lib-pdf-font/src',
+        ),
+        'Com\\Tecnick\\Pdf\\Filter\\' =>
+        array (
+            0 => __DIR__ . '/..' . '/tecnickcom/tc-lib-pdf-filter/src',
+        ),
+        'Com\\Tecnick\\Pdf\\Encrypt\\' =>
+        array (
+            0 => __DIR__ . '/..' . '/tecnickcom/tc-lib-pdf-encrypt/src',
+        ),
+        'Com\\Tecnick\\Pdf\\' =>
+        array (
+            0 => __DIR__ . '/..' . '/tecnickcom/tc-lib-pdf/src',
+        ),
+        'Com\\Tecnick\\File\\' =>
+        array (
+            0 => __DIR__ . '/..' . '/tecnickcom/tc-lib-file/src',
+        ),
+        'Com\\Tecnick\\Color\\' =>
+        array (
+            0 => __DIR__ . '/..' . '/tecnickcom/tc-lib-color/src',
+        ),
+        'Com\\Tecnick\\Barcode\\' =>
+        array (
+            0 => __DIR__ . '/..' . '/tecnickcom/tc-lib-barcode/src',
         ),
     );
 

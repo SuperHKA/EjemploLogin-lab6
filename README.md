@@ -342,25 +342,29 @@ Esto ayuda a reducir riesgos de fijación de sesión.
 
 El archivo `salir.php` destruye la sesión activa y redirige al usuario al formulario de login.
 
-## Evidencias recomendadas para la entrega
+## Comprobaciones de funcionamiento
 
-Para documentar correctamente el laboratorio, se recomienda incluir capturas de:
+### Paso 1: Creación del usuario en MySQL con permisos mínimos
 
-1. Repositorio del proyecto.
-2. Base de datos `company_info`.
-3. Tablas creadas.
-4. Usuario MySQL sin root.
-5. Resultado de `SHOW GRANTS`.
-6. Formulario de registro.
-7. Validación de usuario o correo duplicado.
-8. Login funcionando.
-9. Código QR generado.
-10. Cuenta agregada en Google Authenticator.
-11. Pantalla de validación 2FA.
-12. Acceso exitoso al dashboard.
-13. Registros en `intentos_login`.
-14. Registros en `usuarios`.
-15. Cierre de sesión.
+![ ](images/1.png)
+
+### Paso 2: Formulario de registro
+
+![ ](images/2.png)
+
+### Paso 3: Validación de 2FA
+
+![ ](images/3.png)
+
+Pantalla de configuración de autenticación de dos factores que muestra:
+
+- Código QR para escanear con Google Authenticator
+- Clave manual (secreto 2FA) para ingreso manual si es necesario
+- Formulario para validar el código de 6 dígitos
+
+### Paso 4: Login exitoso
+
+![ ](images/4.png)
 
 ## Instalación rápida
 
@@ -377,9 +381,7 @@ CREATE DATABASE company_info;
 ```
 
 3. Crear las tablas necesarias.
-
 4. Crear un usuario MySQL con privilegios mínimos.
-
 5. Configurar la conexión en:
 
 ```text
@@ -397,23 +399,6 @@ composer install
 ```text
 http://localhost/Laboratorios/EjemploLogin-lab6/login.php
 ```
-
-## Estado del laboratorio
-
-El proyecto cumple con los puntos principales solicitados:
-
-* Registro de usuarios.
-* Validación de datos.
-* Sanitización.
-* Hash de contraseñas.
-* Login con sesiones.
-* Registro de intentos.
-* Autenticación 2FA.
-* Código QR.
-* Validación de código temporal.
-* Usuario MySQL sin privilegios de superusuario.
-* Protección CSRF.
-* Dashboard protegido.
 
 ## Conclusión
 

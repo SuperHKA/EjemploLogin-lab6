@@ -1,5 +1,7 @@
 {
     "require": {
-        "sonata-project/google-authenticator": "^2.3"
+        "sonata-project/google-authenticator": "^2.3",
+        "tecnickcom/tc-lib-pdf": "^8.39",
+        "tecnickcom/tcpdf": "*"
     }
 }
